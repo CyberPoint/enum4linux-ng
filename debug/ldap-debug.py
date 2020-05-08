@@ -12,7 +12,10 @@ def get_namingcontexts(host, tls):
         ldap_con.unbind()
     except Exception as e:
         pprint.PrettyPrinter().pprint(e.args)
-        error = str(e.args[1][0][0])
+        if len(e.args) == 1:
+            error = str(e.args[0])
+        else:
+            error = str(e.args[1][0][0])
         if "]" in error:
             error = error.split(']', 1)[1]
         elif ":" in error:
