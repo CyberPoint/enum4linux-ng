@@ -226,7 +226,7 @@ class Output:
                     f.write(yaml.dump(self.out_dict))
                 f.close()
             except:
-                abort(1, f"An error happened trying go write to {self.out_file}. Exiting.")
+                abort(1, "An error happened trying go write to {}. Exiting.".format(self.out_file))
 
     def as_dict(self):
         return self.out_dict
@@ -272,7 +272,7 @@ class ShareBruteParams:
             self.enumerated_input["shares"] = {}
 
 def print_heading(text):
-    output = f"|    {text}    |"
+    output = "|    {}    |".format(text)
     length = len(output)
     print()
     print(" " + "="*(length-2))
@@ -280,16 +280,16 @@ def print_heading(text):
     print(" " + "="*(length-2))
 
 def print_success(msg):
-    print(f"{Colors.green}[+] {msg + Colors.reset}")
+    print("{}[+] {} {}".format(Colors.green, msg, Colors.reset))
 
 def print_error(msg):
-    print(f"{Colors.red}[-] {msg + Colors.reset}")
+    print("{}[-] {} {}".format(Colors.red, msg, Colors.reset))
 
 def print_info(msg):
-    print(f"{Colors.blue}[*] {msg + Colors.reset}")
+    print("{}[*] {} {}".format(Colors.blue, msg, Colors.reset))
 
 def print_verbose(msg):
-    print(f"[V] {msg}")
+    print("[V] {}".format(msg))
 
 def process_error(msg, module_name, output_dict):
     '''
@@ -322,7 +322,7 @@ def run_nmblookup(host):
     command = ["nmblookup", "-A", host]
     nmblookup_result = run(command, "Trying to get NetBIOS names information")
 
-    if "No reply from" in nmblookup_result:
+    if "No reply from {}".format(host) in nmblookup_result:
         return Result(None, "Could not get NetBIOS names information via nmblookup: host does not reply")
     return Result(nmblookup_result, "")
 
@@ -335,10 +335,10 @@ def get_workgroup_from_nmblookup(nmblookup_result):
         if valid_workgroup(match.group(1)):
             workgroup = match.group(1)
         else:
-            return Result(None, f"Workgroup {workgroup} contains some illegal characters")
+            return Result(None, "Workgroup {} contains some illegal characters".format(workgroup))
     else:
         return Result(None, "Could not find workgroup/domain")
-    return Result(workgroup, f"Got domain/workgroup name: {workgroup}")
+    return Result(workgroup, "Got domain/workgroup name: {}".format(workgroup))
 
 def nmblookup_to_human(nmblookup_result):
     '''
@@ -368,7 +368,7 @@ def nmblookup_to_human(nmblookup_result):
                         break
         else:
             output.append(line)
-    return Result(output, f"Full NetBIOS names information:\n{yaml.dump(output).rstrip()}")
+    return Result(output, "Full NetBIOS names information:\n{}".format(yaml.dump(output).rstrip()))
 
 def check_session(target, creds, random_user_session=False):
     '''
@@ -403,17 +403,17 @@ def check_session(target, creds, random_user_session=False):
         pw = creds.pw
         session_type = "user"
 
-    command = ['smbclient', '-W', target.workgroup, f'//{target.host}/ipc$', '-U', f'{user}%{pw}', '-c', 'help']
+    command = ['smbclient', '-W', target.workgroup, '//{}/ipc$'.format(target.host), '-U', '{}%{}'.format(user, pw), '-c', 'help']
     session_output = run(command, "Attempting to make session")
 
     match = re.search(r"do_connect:.*failed\s\(Error\s([^)]+)\)", session_output)
     if match:
         error_code = match.group(1)
-        return Result(None, f"Server connection failed for {session_type} session: {error_code}")
+        return Result(None, "Server connection failed for {} session: {}".format(session_type, error_code))
 
     if "case_sensitive" in session_output:
-        return Result(True, f"Server allows session using username '{user}', password '{pw}'")
-    return Result(False, f"Server doesn't allow session using username '{user}', password '{pw}'")
+        return Result(True, "Server allows session using username '{}', password '{}'".format(user, pw))
+    return Result(False, "Server doesn't allow session using username '{}', password '{}'".format(user, pw))
 
     #FIXME: The code snippet below is a 1:1 translation from the original perl code.
     #       I tested the code against various machines. The smbclient command output
@@ -435,18 +435,15 @@ def get_namingcontexts(target):
         ldap_con = Connection(server, auto_bind=True)
         ldap_con.unbind()
     except Exception as e:
-        if len(e.args) == 1:
-            error = str(e.args[0])
-        else:
-            error = str(e.args[1][0][0])
+        error = str(e.args[1][0][0])
         if "]" in error:
             error = error.split(']', 1)[1]
         elif ":" in error:
             error = error.split(':', 1)[1]
         error = error.lstrip().rstrip()
         if target.tls:
-            return Result(None, f"LDAPS connect error: {error}")
-        return Result(None, f"LDAP connect error: {error}")
+            return Result(None, "LDAPS connect error: {}".format(error))
+        return Result(None, "LDAP connect error: {}".format(error))
 
     try:
         if not server.info.naming_contexts:
@@ -482,7 +479,7 @@ def get_long_domain(namingcontexts_result):
             long_domain = long_domain.replace(",", ".")
             break
     if long_domain:
-        return Result(long_domain, f"Long domain name is: {long_domain}")
+        return Result(long_domain, "Long domain name is: {}".format(long_domain))
     return Result(None, "Could not find long domain")
 
 def run_lsaquery(target, creds):
@@ -492,7 +489,7 @@ def run_lsaquery(target, creds):
     command. This command will do an LSA_QueryInfoPolicy request to get the domain name and the domain service identifier
     (SID).
     '''
-    command = ['rpcclient', '-W', target.workgroup, '-U', f'{creds.user}%{creds.pw}', target.host, '-c', 'lsaquery']
+    command = ['rpcclient', '-W', target.workgroup, '-U', '{}%{}'.format(creds.user, creds.pw), target.host, '-c', 'lsaquery']
     lsaquery_result = run(command, "Attempting to get domain SID")
 
     if "NT_STATUS_LOGON_FAILURE" in lsaquery_result:
@@ -527,7 +524,7 @@ def get_workgroup_from_lsaquery(lsaquery_result):
             workgroup = match.group(1)
 
     if workgroup:
-        return Result(workgroup, f"Domain: {workgroup}")
+        return Result(workgroup, "Domain: {}".format(workgroup))
     return Result(None, "Could not get workgroup from lsaquery")
 
 def get_domain_sid_from_lsaquery(lsaquery_result):
@@ -539,7 +536,7 @@ def get_domain_sid_from_lsaquery(lsaquery_result):
     if match:
         domain_sid = match.group(1)
     if domain_sid:
-        return Result(domain_sid, f"SID: {domain_sid}")
+        return Result(domain_sid, "SID: {}".format(domain_sid))
     return Result(None, "Could not get domain SID from lsaquery")
 
 def run_srvinfo(target, creds):
@@ -558,7 +555,7 @@ def run_srvinfo(target, creds):
     #if match:
     #    print(f"[+] Got OS info for {host} from smbclient: {match.group(1)}")
 
-    command = ["rpcclient", "-W", target.workgroup, '-U', f'{creds.user}%{creds.pw}', '-c', 'srvinfo', target.host]
+    command = ["rpcclient", "-W", target.workgroup, '-U', '{}%{}'.format(creds.user, creds.pw), '-c', 'srvinfo', target.host]
     srvinfo_result = run(command, "Attempting to get OS info with command")
 
     if "NT_STATUS_ACCESS_DENIED" in srvinfo_result:
@@ -584,7 +581,7 @@ def get_os_info(srvinfo_result):
                 os_info['server_type_string'] = match.group(1)
             first = False
         for search_pattern in search_pattern_list:
-            match = re.search(fr"\s+{search_pattern}\s+:\s+(.*)", line)
+            match = re.search(r"\s+{}\s+:\s+(.*)".format(search_pattern), line)
             if match:
                 # os version => os_version, server type => server_type
                 search_pattern = search_pattern.replace(" ", "_")
@@ -594,7 +591,7 @@ def get_os_info(srvinfo_result):
 
     retmsg = "The following OS information were found:\n"
     for key, value in os_info.items():
-        retmsg += (f"{key:18} = {value}\n")
+        retmsg += ("{0: <18} = {}\n".format(key, value))
     retmsg = retmsg.rstrip()
     return Result(os_info, retmsg)
 
@@ -604,7 +601,7 @@ def run_querydispinfo(target, creds):
     This request will return users with their corresponding Relative ID (RID) as well as multiple account information like a
     description of the account.
     '''
-    command = ['rpcclient', '-W', target.workgroup, '-c', 'querydispinfo', '-U', f'{creds.user}%{creds.pw}', target.host]
+    command = ['rpcclient', '-W', target.workgroup, '-c', 'querydispinfo', '-U', '{}%{}'.format(creds.user, creds.pw), target.host]
     querydispinfo_result = run(command, "Attempting to get userlist")
 
     if "NT_STATUS_ACCESS_DENIED" in querydispinfo_result:
@@ -622,7 +619,7 @@ def run_enumdomusers(target, creds):
     the registry key HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\Lsa\\RestrictAnonymous = 0. If this is set to
     1 enumeration is no longer possible.
     '''
-    command = ["rpcclient", "-W", target.workgroup, "-c", "enumdomusers", "-U", f"{creds.user}%{creds.pw}", target.host]
+    command = ["rpcclient", "-W", target.workgroup, "-c", "enumdomusers", "-U", "{}%{}".format(creds.user, creds.pw), target.host]
     enumdomusers_result = run(command, "Attempting to get userlist")
 
     if "NT_STATUS_ACCESS_DENIED" in enumdomusers_result:
@@ -658,7 +655,7 @@ def enum_users_from_querydispinfo(target, creds):
         else:
             return Result(None, "Could not extract users from querydispinfo output")
     if users:
-        return Result(users, f"Found {len(users.keys())} via 'querydispinfo'")
+        return Result(users, "Found {} via 'querydispinfo'".format(len(users.keys())))
     return Result(users, "Got an empty response, there are no user(s) (this is not an error, there seem to be really none)")
 
 def enum_users_from_enumdomusers(target, creds):
@@ -683,7 +680,7 @@ def enum_users_from_enumdomusers(target, creds):
         else:
             return Result(None, "Could not extract users from eumdomusers output")
     if users:
-        return Result(users, f"Found {len(users.keys())} via 'enumdomusers'")
+        return Result(users, "Found {} via 'enumdomusers'".format(len(users.keys())))
     return Result(users, "Got an empty response, there are no user(s) (this is not an error, there seem to be really none)")
 
 def get_user_details_from_rid(rid, target, creds):
@@ -692,10 +689,10 @@ def get_user_details_from_rid(rid, target, creds):
     The output contains lots of information about the corresponding user account.
     '''
     if not valid_rid(rid):
-        return Result(None, f"Invalid rid passed: {rid}")
+        return Result(None, "Invalid rid passed: {}".format(rid))
 
     details = OrderedDict()
-    command = ["rpcclient", "-W", target.workgroup, "-U", f"{creds.user}%{creds.pw}", "-c", f"queryuser {rid}", target.host]
+    command = ["rpcclient", "-W", target.workgroup, "-U", "{}%{}".format(creds.user, creds.pw), "-c", "queryuser {}".format(rid), target.host]
     output = run(command, "Attempting to get detailed user info")
 
     match = re.search("([^\n]*User Name.*logon_hrs[^\n]*)", output, re.DOTALL)
@@ -721,8 +718,8 @@ def get_user_details_from_rid(rid, target, creds):
                 else:
                     details[CONST_ACB_DICT[key]] = False
 
-        return Result(details, f"Found user details for user with RID {rid}")
-    return Result(details, f"Could not find user details for user with RID {rid}")
+        return Result(details, "Found user details for user with RID {}".format(rid))
+    return Result(details, "Could not find user details for user with RID {}".format(rid))
 
 def run_enum_groups(grouptype, target, creds):
     '''
@@ -736,15 +733,15 @@ def run_enum_groups(grouptype, target, creds):
     }
 
     if grouptype not in ["builtin", "domain", "local"]:
-        return Result(None, f"Unsupported grouptype, supported types are: { ','.join(grouptype_dict.keys()) }")
+        return Result(None, "Unsupported grouptype, supported types are: {}".format( ','.join(grouptype_dict.keys())))
 
-    command = ["rpcclient", "-W", target.workgroup, "-U", f"{creds.user}%{creds.pw}", target.host, "-c", f"{grouptype_dict[grouptype]}"]
-    groups_string = run(command, f"Attempting to get {grouptype} groups")
+    command = ["rpcclient", "-W", target.workgroup, "-U", "{}%{}".format(creds.user, creds.pw), target.host, "-c", "{}".format(grouptype_dict[grouptype])]
+    groups_string = run(command, "Attempting to get {} groups".format(grouptype))
 
     if "NT_STATUS_ACCESS_DENIED" in groups_string:
-        return Result(None, f"Could not get groups via {grouptype_dict[grouptype]}: NT_STATUS_ACCESS_DENIED")
+        return Result(None, "Could not get groups via {}: NT_STATUS_ACCESS_DENIED".format(grouptype_dict[grouptype]))
     if "NT_STATUS_LOGON_FAILURE" in groups_string:
-        return Result(None, f"Could not get groups via {grouptype_dict[grouptype]}: NT_STATUS_LOGON_FAILURE")
+        return Result(None, "Could not get groups via {}: NT_STATUS_LOGON_FAILURE".format(grouptype_dict[grouptype]))
     return Result(groups_string, "")
 
 def enum_groups(grouptype, target, creds):
@@ -759,7 +756,7 @@ def enum_groups(grouptype, target, creds):
     }
 
     if grouptype not in ["builtin", "domain", "local"]:
-        return Result(None, f"Unsupported grouptype, supported types are: { ','.join(grouptype_dict.keys()) }")
+        return Result(None, "Unsupported grouptype, supported types are: {}".format( ','.join(grouptype_dict.keys())))
 
     groups = {}
     enum = run_enum_groups(grouptype, target, creds)
@@ -767,11 +764,11 @@ def enum_groups(grouptype, target, creds):
         return enum
 
     if not enum.retval:
-        return Result({}, f"Got an empty response, there no group(s) found via {grouptype_dict[grouptype]} command (this is not an error, there seem to be really none)")
+        return Result({}, "Got an empty response, there no group(s) found via {} command (this is not an error, there seem to be really none)".format(grouptype_dict[grouptype]))
 
     match = re.search("(group:.*)", enum.retval, re.DOTALL)
     if not match:
-        return Result(None, f"Could not parse result of {grouptype_dict[grouptype]} command")
+        return Result(None, "Could not parse result of {} command".format(grouptype_dict[grouptype]))
 
     # Example output of rpcclient's group commands:
     # group:[RAS and IAS Servers] rid:[0x229]
@@ -783,9 +780,9 @@ def enum_groups(grouptype, target, creds):
             rid = str(int(rid, 16))
             groups[rid] = OrderedDict({"groupname":groupname, "type":grouptype})
         else:
-            return Result(None, f"Could not extract groups from {grouptype_dict[grouptype]} output")
+            return Result(None, "Could not extract groups from {} output".format(grouptype_dict[grouptype]))
     if groups:
-        return Result(groups, f"Found {len(groups.keys())} groups via '{grouptype_dict[grouptype]}'")
+        return Result(groups, "Found {} groups via '{}'".format(len(groups.keys()), grouptype_dict[grouptype]))
     return Result(groups, "Got an empty response, there are no group(s) (this is not an error, there seem to be really none)")
 
 def get_group_members_from_name(groupname, target, creds):
@@ -793,27 +790,27 @@ def get_group_members_from_name(groupname, target, creds):
     Takes a group name as first argument and tries to enumerate the group members. This is don by using
     the 'net rpc group members' command.
     '''
-    command = ["net", "rpc", "group", "members", groupname, "-W", target.workgroup, "-I", target.host, "-U", f"{creds.user}%{creds.pw}"]
-    members_string = run(command, f"Attempting to get group memberships for group {groupname}")
+    command = ["net", "rpc", "group", "members", groupname, "-W", target.workgroup, "-I", target.host, "-U", "{}%{}".format(creds.user, creds.pw)]
+    members_string = run(command, "Attempting to get group memberships for group {}".format(groupname))
     members = []
     for member in members_string.splitlines():
         if "Couldn't lookup SIDs" in member:
-            return Result(None, f"Members lookup failed for group '{groupname}' due to insufficient user permissions, try a different user")
+            return Result(None, "Members lookup failed for group '{}' due to insufficient user permissions, try a different user".format(groupname))
         members.append(member)
 
     if members:
-        return Result(','.join(members), f"Found {len(members)} member(s) for group '{groupname}'")
-    return Result('', f"Could not find members for group '{groupname}'")
+        return Result(','.join(members), "Found {} member(s) for group '{}'".format(len(members), groupname))
+    return Result('', "Could not find members for group '{}'".format(groupname))
 
 def get_group_details_from_rid(rid, target, creds):
     '''
     Takes an RID and makes use of the SAMR named pipe to open the group with OpenGroup() on the given RID.
     '''
     if not valid_rid(rid):
-        return Result(None, f"Invalid rid passed: {rid}")
+        return Result(None, "Invalid rid passed: {}".format(rid))
 
     details = OrderedDict()
-    command = ["rpcclient", "-W", target.workgroup, "-U", f'{creds.user}%{creds.pw}', "-c", f"querygroup {rid}", target.host]
+    command = ["rpcclient", "-W", target.workgroup, "-U", '{}%{}'.format(creds.user, creds.pw), "-c", "querygroup {}".format(rid), target.host]
     output = run(command, "Attempting to get detailed group info")
 
     #FIXME: Only works for domain groups, otherwise NT_STATUS_NO_SUCH_GROUP is returned
@@ -832,8 +829,8 @@ def get_group_details_from_rid(rid, target, creds):
             else:
                 details[line] = ""
 
-        return Result(details, f"Found group details for group with RID {rid}")
-    return Result(details, f"Could not find group details for group with RID {rid}")
+        return Result(details, "Found group details for group with RID {}".format(rid))
+    return Result(details, "Could not find group details for group with RID {}".format(rid))
 
 def check_share_access(share, target, creds):
     '''
@@ -844,8 +841,8 @@ def check_share_access(share, target, creds):
     is not allowed, while NOT SUPPORTED means the share does not support listing at all.
     This is the case for shares like IPC$ which is used for remote procedure calls.
     '''
-    command = ["smbclient", "-W", target.workgroup, f"//{target.host}/{share}", "-U", f"{creds.user}%{creds.pw}", "-c", "dir"]
-    output = run(command, f"Attempting to map share //{target.host}/{share}")
+    command = ["smbclient", "-W", target.workgroup, "//{}/{}".format(target.host, share), "-U", "{}%{}".format(creds.user, creds.pw), "-c", "dir"]
+    output = run(command, "Attempting to map share //{}/{}".format(target.host, share))
 
     if "NT_STATUS_BAD_NETWORK_NAME" in output:
         return Result(None, "Share doesn't exist")
@@ -857,7 +854,7 @@ def check_share_access(share, target, creds):
         return Result({"mapping":"denied", "listing":"n/a"}, "Mapping: DENIED, Listing: N/A")
 
     if "NT_STATUS_INVALID_INFO_CLASS" in output:
-        return Result({"mapping":"ok", "listing":"not supported"}, f"Mapping: OK, Listing: NOT SUPPORTED")
+        return Result({"mapping":"ok", "listing":"not supported"}, "Mapping: OK, Listing: NOT SUPPORTED")
 
     if re.search(r"\n\s+\.\.\s+D.*\d{4}\n", output):
         return Result({"mapping":"ok", "listing":"ok"}, "Mapping: OK, Listing: OK")
@@ -878,7 +875,7 @@ def enum_shares(target, creds):
     For the list of resulting shares, smbclient is used again with the "dir" command. In the background this will
     send an SMB I/O Control (IOCTL) request in order to list the contents of the share.
     '''
-    command = ["smbclient", "-W", target.workgroup, "-L", f"//{target.host}", "-U", f"{creds.user}%{creds.pw}"]
+    command = ["smbclient", "-W", target.workgroup, "-L", "//{target.host}".format(target.host), "-U", "{}%{}".format(creds.user, creds.pw)]
     shares_result = run(command, "Attempting to get share list using authentication")
 
     if "NT_STATUS_ACCESS_DENIED" in shares_result:
@@ -891,8 +888,8 @@ def enum_shares(target, creds):
             shares[share] = {}
 
     if shares:
-        return Result(shares, f"Found {len(shares.keys())} share(s): {','.join(shares.keys())}")
-    return Result(None, f"No shares found for user '{creds.user}' with password '{creds.pw}', try a different user")
+        return Result(shares, "Found {} share(s): {}".format(len(shares.keys()), ','.join(shares.keys())))
+    return Result(None, "No shares found for user '{}' with password '{}', try a different user".format(creds.user, creds.pw))
 
 def enum_sids(users, target, creds):
     '''
@@ -903,8 +900,8 @@ def enum_sids(users, target, creds):
 
     # Try to get a valid SID from well-known user names
     for known_username in users:
-        command = ["rpcclient", "-W", target.workgroup, "-U", f"{creds.user}%{creds.pw}", target.host, "-c", f"lookupnames {known_username}"]
-        sid_string = run(command, f"Attempting to get SID for user {known_username}")
+        command = ["rpcclient", "-W", target.workgroup, "-U", "{}%{}".format(creds.user, creds.pw), target.host, "-c", "lookupnames {}".format(known_username)]
+        sid_string = run(command, "Attempting to get SID for user {}".format(known_username))
 
         if "NT_STATUS_ACCESS_DENIED" or "NT_STATUS_NONE_MAPPED" in sid_string:
             continue
@@ -917,8 +914,8 @@ def enum_sids(users, target, creds):
                     sids.append(result)
 
     # Try to get SID list via lsaenumsid
-    command = ["rpcclient", "-W", target.workgroup, "-U", f"{creds.user}%{creds.pw}", "-c", "lsaenumsid", target.host]
-    sids_string = run(command, f"Attempting to get SIDs via lsaenumsid")
+    command = ["rpcclient", "-W", target.workgroup, "-U", "{}%{}".format(creds.user, creds.pw), "-c", "lsaenumsid", target.host]
+    sids_string = run(command, "Attempting to get SIDs via lsaenumsid")
 
     if "NT_STATUS_ACCESS_DENIED" not in sids_string:
         for pattern in sid_patterns_list:
@@ -928,7 +925,7 @@ def enum_sids(users, target, creds):
                     sids.append(result)
 
     if sids:
-        return Result(sids, f"Found {len(sids)} SIDs")
+        return Result(sids, "Found {} SIDs".format(len(sids)))
     return Result(None, "Could not get any SIDs")
 
 def prepare_rid_ranges(rid_ranges):
@@ -963,7 +960,7 @@ def rid_cycle(sid, rid_ranges, target, creds):
         (start_rid, end_rid) = rid_range
 
         for rid in range(start_rid, end_rid):
-            command = ["rpcclient", "-W", target.workgroup, "-U", f"{creds.user}%{creds.pw}", target.host, "-c", f"lookupsids {sid}-{rid}"]
+            command = ["rpcclient", "-W", target.workgroup, "-U", "{}%{}".format(creds.user, creds.pw), target.host, "-c", "lookupsids {}-{}".format(sid, rid)]
             output = run(command, "RID Cycling")
 
             # Example: S-1-5-80-3139157870-2983391045-3678747466-658725712-1004 *unknown*\*unknown* (8)
@@ -981,40 +978,38 @@ def rid_cycle(sid, rid_ranges, target, creds):
                 # "(5)" = Well-known group, "(6)" = Deleted account, "(7)" = Invalid account
                 # "(8)" = Unknown, "(9)" = Machine/Computer account
                 if "(1)" in sid_and_user:
-                    yield Result({"users":{str(rid):{"username":entry}}}, f"Found user {entry}")
+                    yield Result({"users":{str(rid):{"username":entry}}}, "Found user {}".format(entry))
                 elif "(2)" in sid_and_user:
-                    yield Result({"groups":{str(rid):{"groupname":entry, "type":"domain"}}}, f"Found domain group {entry}")
+                    yield Result({"groups":{str(rid):{"groupname":entry, "type":"domain"}}}, "Found domain group {}".format(entry))
                 elif "(3)" in sid_and_user:
-                    yield Result({"domain_sid":f"{sid}-{rid}"}, f"Found domain SID {sid}-{rid}")
+                    yield Result({"domain_sid":"{}-{}".format(sid, rid)}, "Found domain SID {}-{}".format(sid, rid))
                 elif "(4)" in sid_and_user:
-                    yield Result({"groups":{str(rid):{"groupname":entry, "type":"builtin"}}}, f"Found builtin group {entry}")
+                    yield Result({"groups":{str(rid):{"groupname":entry, "type":"builtin"}}}, "Found builtin group {}".format(entry))
                 elif "(9)" in sid_and_user:
-                    yield Result({"machines":{str(rid):{"machine":entry}}}, f"Found machine {entry}")
+                    yield Result({"machines":{str(rid):{"machine":entry}}}, "Found machine {}".format(entry))
 
 def enum_printers(target, creds):
     '''
     Tries to enum printer via rpcclient's enumprinters.
     '''
-    command = ["rpcclient", "-W", target.workgroup, "-U", f"{creds.user}%{creds.pw}", "-c", "enumprinters", target.host]
+    command = ["rpcclient", "-W", target.workgroup, "-U", "{}%{}".format(creds.user, creds.pw), "-c", "enumprinters", target.host]
     printer_info = run(command, "Attempting to get printer info")
     printers = {}
 
     if "NT_STATUS_OBJECT_NAME_NOT_FOUND" in printer_info:
-        return Result("", f"No printer available")
+        return Result("", "No printer available")
     if "NT_STATUS_ACCESS_DENIED" in printer_info:
-        return Result(None, f"Could not get printer info: NT_STATUS_ACCESS_DENIED")
+        return Result(None, "Could not get printer info: NT_STATUS_ACCESS_DENIED")
     if "NT_STATUS_LOGON_FAILURE" in printer_info:
-        return Result(None, f"Could not get printer info: NT_STATUS_LOGON_FAILURE")
+        return Result(None, "Could not get printer info: NT_STATUS_LOGON_FAILURE")
     if "NT_STATUS_HOST_UNREACHABLE" in printer_info:
-        return Result(None, f"Could not get printer info: NT_STATUS_HOST_UNREACHABLE")
-    if "No printers returned." in printer_info:
-        return Result({}, "No printers returned (this is not an error).")
+        return Result(None, "Could not get printer info: NT_STATUS_HOST_UNREACHABLE")
     if not printer_info:
-        return Result({}, f"Got an empty response, there are no printer(s) (this is not an error, there seem to be really none)")
+        return Result({}, "Got an empty response, there are no printer(s) (this is not an error, there seem to be really none)")
 
     match_list = re.findall(r"\s*flags:\[([^\n]*)\]\n\s*name:\[([^\n]*)\]\n\s*description:\[([^\n]*)\]\n\s*comment:\[([^\n]*)\]", printer_info, re.MULTILINE)
     if not match_list:
-        return Result(None, f"Could not parse result of enumprinters command")
+        return Result(None, "Could not parse result of enumprinters command")
 
     for match in match_list:
         flags = match[0]
@@ -1023,7 +1018,7 @@ def enum_printers(target, creds):
         comment = match[3]
         printers[name] = OrderedDict({ "description":description, "comment":comment, "flags":flags})
 
-    return Result(printers, f"Found {len(printers.keys())} printer(s):\n{yaml.dump(printers).rstrip()}")
+    return Result(printers, "Found {} printer(s):\n{}".format(len(printers.keys()), yaml.dump(printers).rstrip()))
 
 # This function is heavily based on the polenum.py source code: https://github.com/Wh1t3Fox/polenum
 # All credits to Wh1t3Fox!
@@ -1038,7 +1033,7 @@ def samr_init(target, creds):
         dce.connect()
         dce.bind(samr.MSRPC_UUID_SAMR)
     except:
-        return Result((None, None), f"DCE/SAMR connect failed on port {target.port}/tcp")
+        return Result((None, None), "DCE/SAMR connect failed on port {}/tcp".format(target.port))
 
     try:
         resp = samr.hSamrConnect2(dce)
@@ -1116,7 +1111,7 @@ def enum_policy(target, creds):
 
     policy["force_logoff_time"] = policy_to_human(result['Buffer']['Logoff']['ForceLogoff']['LowPart'], result['Buffer']['Logoff']['ForceLogoff']['HighPart'])
 
-    return Result(policy, f"Found policy:\n{yaml.dump(policy).rstrip()}")
+    return Result(policy, "Found policy:\n{}".format(yaml.dump(policy).rstrip()))
 
 # This function was copied (slightly modified) from the polenum.py source code: https://github.com/Wh1t3Fox/polenum
 # All credits to Wh1t3Fox!
@@ -1152,17 +1147,17 @@ def policy_to_human(low, high, lockout=False):
         return "invalid time"
 
     if days > 1:
-        time += f"{days} days "
+        time += "{} days ".format(days)
     elif days == 1:
-        time += f"{days} day "
+        time += "{} day ".format(days)
     if hours > 1:
-        time += f"{hours} hours "
+        time += "{} hours ".format(hours)
     elif hours == 1:
-        time += f"{hours} hour "
+        time += "{} hour ".format(hours)
     if minutes > 1:
-        time += f"{minutes} minutes"
+        time += "{} minutes".format(minutes)
     elif minutes == 1:
-        time += f"{minutes} minute"
+        time += "{} minute".format(minutes)
     return time
 
 def run(command, description=""):
@@ -1172,7 +1167,7 @@ def run(command, description=""):
     if global_verbose and description:
         # Works only in Python 3.8, which currently conflicts with some impacket stuff
         #print(f"[V] {description}, running command: {shlex.join(command)}")
-        print_verbose(f"{description}, running command: {' '.join(shlex.quote(x) for x in command)}")
+        print_verbose("{}, running command: {}".format(description, ' '.join(shlex.quote(x) for x in command)))
 
     try:
         output = subprocess.check_output(command, shell=False, stderr=subprocess.STDOUT)
@@ -1183,7 +1178,6 @@ def run(command, description=""):
     # Workaround for Samba bug (see https://bugzilla.samba.org/show_bug.cgi?id=13925)
     output = output.replace("Unable to initialize messaging context\n", "")
     output = output.replace("WARNING: no network interfaces found\n", "")
-    output = output.replace("Can't load /etc/samba/smb.conf - run testparm to debug it\n", "")
     output = output.rstrip('\n')
     return output
 
@@ -1192,7 +1186,7 @@ def run_module_netbios(target):
     Run NetBIOS module which collects Netbios names and the workgroup.
     '''
     module_name = "netbios"
-    print_heading(f"Getting NetBIOS names for {target.host}")
+    print_heading("Getting NetBIOS names for {}".format(target.host))
     output = {}
 
     nmblookup = run_nmblookup(target.host)
@@ -1219,7 +1213,7 @@ def run_module_session_check(target, creds):
     Run session check module which tests for user and null sessions.
     '''
     module_name = "session_check"
-    print_heading(f"Session Check on {target.host}")
+    print_heading("Session Check on {}".format(target.host))
     output = {}
 
     # Check null session
@@ -1244,13 +1238,13 @@ def run_module_session_check(target, creds):
             output = process_error(user_session.retmsg, module_name, output)
 
     # Check random user session
-    print_info(f"Check for random user session")
+    print_info("Check for random user session")
     output["random_user_session_possible"] = False
     user_session = check_session(target, creds, random_user_session=True)
     if user_session.retval:
         output["random_user_session_possible"] = True
         print_success(user_session.retmsg)
-        print_success(f"Re-running enumeration with user '{creds.random_user}' might give more results.")
+        print_success("Re-running enumeration with user '{}' might give more results.".format(creds.random_user))
     else:
         output = process_error(user_session.retmsg, module_name, output)
 
@@ -1269,14 +1263,14 @@ def run_module_ldapsearch(target):
     the LDAP RootDSE.
     '''
     module_name = "ldapsearch"
-    print_heading(f"Getting information via LDAP for {target.host}")
+    print_heading("Getting information via LDAP for {}".format(target.host))
     output = {}
 
     for with_tls in [False, True]:
         if with_tls:
-            print_info(f'Trying LDAPS')
+            print_info('Trying LDAPS')
         else:
-            print_info(f'Trying LDAP')
+            print_info('Trying LDAP')
         target.tls = with_tls
         namingcontexts = get_namingcontexts(target)
         if namingcontexts.retval is not None:
@@ -1310,7 +1304,7 @@ def run_module_lsaquery(target, creds):
     the domain/workgroup name, domain SID and the membership type.
     '''
     module_name = "lsaquery"
-    print_heading(f"Getting domain information for {target.host}")
+    print_heading("Getting domain information for {}".format(target.host))
     output = {}
 
     lsaquery = run_lsaquery(target, creds)
@@ -1349,7 +1343,7 @@ def run_module_srvinfo(target, creds):
     Run module srvinfo which collects various OS information.
     '''
     module_name = "srvinfo"
-    print_heading(f"OS information on {target.host}")
+    print_heading("OS information on {}".format(target.host))
     output = {}
 
     srvinfo = run_srvinfo(target, creds)
@@ -1370,7 +1364,7 @@ def run_module_enum_users(target, creds, detailed):
     Run module enum users.
     '''
     module_name = "enum_users"
-    print_heading(f"Users on {target.host}")
+    print_heading("Users on {}".format(target.host))
     output = {}
 
     print_info("Enumerating users")
@@ -1407,7 +1401,7 @@ def run_module_enum_users(target, creds, detailed):
                     output = process_error(user_details.retmsg, module_name, output)
                     users[rid]["details"] = ""
 
-        print_success(f"After merging user results we have {len(users.keys())} users total:\n{yaml.dump(users).rstrip()}")
+        print_success("After merging user results we have {} users total:\n{}".format(len(users.keys()), yaml.dump(users).rstrip()))
 
     output["users"] = users
     return output
@@ -1417,7 +1411,7 @@ def run_module_enum_groups(target, creds, with_members, detailed):
     Run module enum groups.
     '''
     module_name = "enum_groups"
-    print_heading(f"Groups on {target.host}")
+    print_heading("Groups on {}".format(target.host))
     output = {}
     groups = {}
 
@@ -1458,7 +1452,7 @@ def run_module_enum_groups(target, creds, with_members, detailed):
                 else:
                     output = process_error(group_details.retmsg, module_name, output)
                     groups[rid]["details"] = ""
-        print_success(f"After merging groups results we have {len(groups.keys())} groups total:\n{yaml.dump(groups).rstrip()}")
+        print_success("After merging groups results we have {} groups total:\n{}".format(len(groups.keys()), yaml.dump(groups).rstrip()))
     output["groups"] = groups
     return output
 
@@ -1467,14 +1461,14 @@ def run_module_rid_cycling(cycle_params, target, creds, detailed):
     Run module RID cycling.
     '''
     module_name = "rid_cycling"
-    print_heading(f"Users, Groups and Machines on {target.host} via RID cycling")
+    print_heading("Users, Groups and Machines on {} via RID cycling".format(target.host))
     output = cycle_params.enumerated_input
 
     # Try to enumerated SIDs first, if we don't have the domain SID already
     if output["domain_sid"]:
         sids_list = [output["domain_sid"]]
     else:
-        print_info(f"Trying to enumerate SIDs")
+        print_info("Trying to enumerate SIDs")
         sids = enum_sids(cycle_params.known_usernames, target, creds)
         if sids.retval is None:
             output = process_error(sids.retmsg, module_name, output)
@@ -1487,7 +1481,7 @@ def run_module_rid_cycling(cycle_params, target, creds, detailed):
 
     # Run...
     for sid in sids_list:
-        print_info(f"Trying SID {sid}")
+        print_info("Trying SID {}".format(sid))
         rid_cycler = rid_cycle(sid, cycle_params.rid_ranges, target, creds)
         for result in rid_cycler:
             # We need the top level key to find out whether we got users, groups, machines or the domain_sid...
@@ -1523,9 +1517,9 @@ def run_module_rid_cycling(cycle_params, target, creds, detailed):
                 output[top_level_key][rid]["details"] = details
 
     if found_count["users"] == 0 and found_count["groups"] == 0 and found_count["machines"] == 0:
-        output = process_error(f"Could not find any (new) users, (new) groups or (new) machines", module_name, output)
+        output = process_error("Could not find any (new) users, (new) groups or (new) machines", module_name, output)
     else:
-        print_success(f"Found {found_count['users']} user(s), {found_count['groups']} group(s), {found_count['machines']} machine(s) in total")
+        print_success("Found {} user(s), {} group(s), {} machine(s) in total".format(found_count['users'], found_count['groups'], found_count['machines']))
 
     return output
 
@@ -1534,7 +1528,7 @@ def run_module_enum_shares(target, creds):
     Run module enum shares.
     '''
     module_name = "enum_shares"
-    print_heading(f"Share enumeration on {target.host}")
+    print_heading("Share enumeration on {}".format(target.host))
     output = {}
     shares = {}
 
@@ -1548,7 +1542,7 @@ def run_module_enum_shares(target, creds):
         # Check access if there are any shares.
         if enum.retmsg:
             for share in shares.keys():
-                print_info(f"Testing share {share}")
+                print_info("Testing share {}".format(share))
                 access = check_share_access(share, target, creds)
                 if access.retval is None:
                     output = process_error(access.retmsg, module_name, output)
@@ -1564,7 +1558,7 @@ def run_module_bruteforce_shares(brute_params, target, creds):
     Run module bruteforce shares.
     '''
     module_name = "bruteforce_shares"
-    print_heading(f"Share bruteforcing on {target.host}")
+    print_heading("Share bruteforcing on {}".format(target.host))
     output = brute_params.enumerated_input
 
     found_count = 0
@@ -1579,17 +1573,17 @@ def run_module_bruteforce_shares(brute_params, target, creds):
 
                 result = check_share_access(share, target, creds)
                 if result.retval:
-                    print_success(f"Found share: {share}")
+                    print_success("Found share: {}".target(share))
                     print_success(result.retmsg)
                     output["shares"][share] = result.retval
                     found_count += 1
     except:
-        output = process_error(f"Failed to open {shares_file}", module_name, output)
+        output = process_error("Failed to open {}".format(shares_file), module_name, output)
 
     if found_count == 0:
-        output = process_error(f"Could not find any (new) shares", module_name, output)
+        output = process_error("Could not find any (new) shares", module_name, output)
     else:
-        print_success(f"Found {found_count} (new) share(s) in total")
+        print_success("Found {} (new) share(s) in total".format(found_count))
 
     return output
 
@@ -1598,11 +1592,11 @@ def run_module_enum_policy(target, creds):
     Run module enum policy.
     '''
     module_name = "enum_policy"
-    print_heading(f"Policy information for {target.host}")
+    print_heading("Policy information for {}".format(target.host))
     output = {}
 
     for port in [139, 445]:
-        print_info(f"Trying port {port}/tcp")
+        print_info("Trying port {}/tcp".format(port))
         target.port = port
         enum = enum_policy(target, creds)
         if enum.retval is None:
@@ -1619,7 +1613,7 @@ def run_module_enum_printers(target, creds):
     Run module enum printers.
     '''
     module_name = "enum_printers"
-    print_heading(f"Getting printer info for {target.host}")
+    print_heading("Getting printer info for {}".format(target.host))
     output = {}
 
     enum = enum_printers(target, creds)
@@ -1656,10 +1650,10 @@ def valid_shares_file(shares_file):
     NL = '\n'
 
     if not os.path.exists(shares_file):
-        return Result(False, f"Shares file {shares_file} does not exist")
+        return Result(False, "Shares file {} does not exist".format(shares_file))
 
     if os.stat(shares_file).st_size == 0:
-        return Result(False, f"Shares file {shares_file} is empty")
+        return Result(False, "Shares file {} is empty".format(shares_file))
 
     try:
         with open(shares_file) as f:
@@ -1667,12 +1661,12 @@ def valid_shares_file(shares_file):
             for share in f:
                 share = share.rstrip()
                 if not valid_share(share):
-                    fault_shares.append(f"line {line_num}:{share}")
+                    fault_shares.append("line {}:{}".format(line_num, share))
                 line_num += 1
     except:
-        return Result(False, f"Could not open shares file {shares_file}")
+        return Result(False, "Could not open shares file {}".format(shares_file))
     if fault_shares:
-        return Result(False, f"These shares contain illegal characters:\n{NL.join(fault_shares)}")
+        return Result(False, "These shares contain illegal characters:\n{}".format(NL.join(fault_shares)))
     return Result(True, "")
 
 def valid_share(share):
@@ -1721,13 +1715,13 @@ def check_args(argv):
     parser.add_argument("-R", action="store_true", help="Enumerate users via RID cycling")
     parser.add_argument("-N", action="store_true", help="Do an nmblookup (similar to nbstat) and try to retrieve workgroup from output")
     parser.add_argument("-w", dest="workgroup", default='', type=str, help="Specify workgroup manually (usually found automatically)")
-    parser.add_argument("-u", dest="user", default='', type=str, help="Specify username to use (default \"\")")
-    parser.add_argument("-p", dest="pw", default='', type=str, help="Specify password to use (default \"\")")
+    parser.add_argument("-u", dest="user", default='', type=str, help="Specify username to use (default "")")
+    parser.add_argument("-p", dest="pw", default='', type=str, help="Specify password to use (default "")")
     parser.add_argument("-d", action="store_true", help="Be detailed, applies to -U, -G and -R")
-    parser.add_argument("-k", dest="users", default=CONST_KNOWN_USERNAMES, type=str, help=f'User(s) that exists on remote system (default: {CONST_KNOWN_USERNAMES}.\nUsed to get sid with "lookupsid known_username"')
-    parser.add_argument("-r", dest="ranges", default=CONST_RID_RANGES, type=str, help=f"RID ranges to enumerate (default: {CONST_RID_RANGES}), implies -r")
+    parser.add_argument("-k", dest="users", default=CONST_KNOWN_USERNAMES, type=str, help='User(s) that exists on remote system (default: {}.\nUsed to get sid with "lookupsid known_username"'.format(CONST_KNOWN_USERNAMES))
+    parser.add_argument("-r", dest="ranges", default=CONST_RID_RANGES, type=str, help="RID ranges to enumerate (default: {}, implies -r".format(CONST_RID_RANGES))
     parser.add_argument("-s", dest="shares_file", help="Brute force guessing for share names")
-    parser.add_argument("-t", dest="timeout", default=CONST_TIMEOUT, help=f"Sets connection timeout in seconds, affects -L (default: {CONST_TIMEOUT}s)")
+    parser.add_argument("-t", dest="timeout", default=CONST_TIMEOUT, help="Sets connection timeout in seconds, affects -L (default: {}s)".format(CONST_TIMEOUT))
     parser.add_argument("-oJ", dest="out_json_file", help="Writes output to JSON file")
     parser.add_argument("-oY", dest="out_yaml_file", help="Writes output to YAML file")
     parser.add_argument("-v", dest="verbose", action="store_true", help="Verbose, show full commands being run (net, rpcclient, etc.)")
@@ -1742,12 +1736,12 @@ def check_args(argv):
     global_verbose = args.verbose
 
     if not valid_host(args.host):
-        abort(1, f"Target host '{args.host}' contains illegal character. Exiting.")
+        abort(1, "Target host '{}' contains illegal character. Exiting.".format(args.host))
 
     # Check Workgroup
     if args.workgroup:
         if not valid_workgroup(args.workgroup):
-            abort(1, f"Workgroup '{args.workgroup}' contains illegal character. Exiting.")
+            abort(1, "Workgroup '{}' contains illegal character. Exiting.".format(args.workgroup))
 
     # Check for RID ranges
     if not valid_rid_ranges(args.ranges):
@@ -1761,7 +1755,7 @@ def check_args(argv):
 
     # Add given users to list of RID cycle users automatically
     if args.user and args.user not in args.users.split(","):
-        args.users += f",{args.user}"
+        args.users += ",{}".format(args.user)
 
     # Check timeout
     if not valid_timeout(args.timeout):
@@ -1778,7 +1772,7 @@ def check_dependencies():
             missing.append(dep)
 
     if missing:
-        print_error(f"The following dependend programs are missing: {', '.join(missing)}")
+        print_error("The following dependend programs are missing: {}".format(', '.join(missing)))
         print_error('     For Gentoo, you need to install the "samba" package.')
         print_error('     For Debian derivates (like Ubuntu) or ArchLinux, you need to install the "smbclient" package.')
         print_error('     For Fedora derivates (like RHEL, CentOS), you need to install the "samba-common-tools" and "samba-client" package.')
@@ -1811,12 +1805,12 @@ def main():
         share_brute_params = ShareBruteParams(args.shares_file)
 
     print_heading("Target Information")
-    print_info(f"Target ........... {target.host}")
-    print_info(f"Username ......... '{creds.user}'")
-    print_info(f"Random Username .. '{creds.random_user}'")
-    print_info(f"Password ......... '{creds.pw}'")
-    print_info(f"RID Range(s) ..... {args.ranges}")
-    print_info(f"Known Usernames .. '{args.users}'")
+    print_info("Target ........... {}".format(target.host))
+    print_info("Username ......... '{}'".format(creds.user))
+    print_info("Random Username .. '{}'".format(creds.random_user))
+    print_info("Password ......... '{}'".format(creds.pw))
+    print_info("RID Range(s) ..... {}".format(args.ranges))
+    print_info("Known Usernames .. '{}'".format(args.users))
 
     # Checks if host is a parent/child domain controller, try to get long domain name
     if args.L or args.A or args.As:
@@ -1885,7 +1879,8 @@ def main():
         output.update(result)
 
     elapsed_time = time() - start_time
-    print(f"\nCompleted after {elapsed_time:.2f} seconds")
+    print("\nCompleted after {0: <2f} seconds".format(elapsed_time))
 
 if __name__ == "__main__":
     main()
+
